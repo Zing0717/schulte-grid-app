@@ -1,0 +1,17 @@
+{
+  "name": "schulte-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "cap:sync": "npx cap sync android",
+    "cap:android": "npx cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.4"
+  }
+}

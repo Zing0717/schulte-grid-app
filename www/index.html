@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1b2e">
+<title>舒尔特方格</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #1a1b2e;
+    color: #e8e9f3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .page { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; padding: max(16px, env(safe-area-inset-top)) 16px 16px; }
+  .hidden { display: none !important; }
+
+  /* ===== 首页 ===== */
+  #home-page { justify-content: center; gap: 8px; }
+  #home-page h1 { font-size: 34px; letter-spacing: 4px; margin-bottom: 4px; }
+  #home-page .subtitle { color: #8a8ca8; font-size: 13px; margin-bottom: 28px; }
+
+  .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 320px; margin-bottom: 12px; }
+  .size-card {
+    background: #252741; border: 2px solid transparent; border-radius: 14px;
+    padding: 14px 0; text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .size-card .num { font-size: 22px; font-weight: 700; }
+  .size-card .label { font-size: 12px; color: #8a8ca8; margin-top: 2px; }
+  .size-card.selected { border-color: #7c6cff; background: #2d2a52; }
+
+  .mode-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mode-btn {
+    background: #252741; color: #aeb0c8; border: none; border-radius: 20px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .mode-btn.selected { background: #7c6cff; color: #fff; }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; font-size: 13px; color: #aeb0c8; }
+  .toggle-row input { width: 18px; height: 18px; accent-color: #7c6cff; }
+
+  .primary-btn {
+    background: #7c6cff; color: #fff; border: none; border-radius: 14px;
+    font-size: 18px; font-weight: 600; padding: 14px 0; width: 100%; max-width: 320px;
+    cursor: pointer; transition: transform .1s, opacity .15s;
+  }
+  .primary-btn:active { transform: scale(.97); opacity: .85; }
+
+  .best-line { margin-top: 14px; font-size: 13px; color: #8a8ca8; }
+  .best-line b { color: #ffd166; }
+
+  .ghost-btn {
+    margin-top: 10px; background: transparent; color: #7c6cff; border: 1.5px solid #7c6cff;
+    border-radius: 14px; font-size: 14px; padding: 9px 26px; cursor: pointer;
+  }
+  .ghost-btn:active { opacity: .7; }
+
+  /* ===== 排行榜页 ===== */
+  #rank-page h2 { font-size: 22px; margin-bottom: 14px; }
+  #rank-list { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-bottom: 10px; }
+  .rank-item {
+    display: flex; align-items: center; background: #252741; border-radius: 12px; padding: 10px 14px; gap: 12px;
+  }
+  .rank-item .pos { width: 28px; font-size: 16px; font-weight: 700; color: #8a8ca8; text-align: center; }
+  .rank-item.top1 .pos { color: #ffd166; }
+  .rank-item.top2 .pos { color: #cdd0e0; }
+  .rank-item.top3 .pos { color: #e8a06b; }
+  .rank-item .info { flex: 1; }
+  .rank-item .meta { font-size: 15px; font-weight: 600; }
+  .rank-item .sub { font-size: 11px; color: #8a8ca8; margin-top: 2px; }
+  .rank-item .time { font-size: 17px; font-weight: 700; color: #7c6cff; font-variant-numeric: tabular-nums; }
+  .rank-empty { color: #8a8ca8; font-size: 14px; text-align: center; margin-top: 40px; }
+
+  /* ===== 折线图（结果页内） ===== */
+  .chart-card { width: 100%; max-width: 340px; background: #252741; border-radius: 14px; padding: 12px 12px 6px; margin-bottom: 20px; }
+  .chart-card .chart-title { font-size: 12px; color: #8a8ca8; margin-bottom: 6px; }
+  .chart-card canvas { width: 100%; height: 130px; display: block; }
+
+  /* ===== 游戏页 ===== */
+  #game-page { justify-content: flex-start; }
+  .hud { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 420px; margin-bottom: 10px; }
+  .hud .left { display: flex; flex-direction: column; }
+  #timer { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #status { font-size: 12px; color: #8a8ca8; margin-top: 2px; min-height: 16px; }
+  .hud .right { text-align: right; }
+  #target-badge { font-size: 26px; font-weight: 700; color: #7c6cff; font-variant-numeric: tabular-nums; }
+  .hud .right .cap { font-size: 11px; color: #8a8ca8; }
+  #errors { font-size: 12px; color: #ff6b81; margin-top: 2px; }
+
+  #grid {
+    display: grid; gap: 4px; width: 100%; max-width: min(92vw, 420px, calc(100vh - 200px));
+    aspect-ratio: 1 / 1;
+  }
+  .cell {
+    background: #252741; border-radius: 10px; border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(16px, 5.5vw, 26px); font-weight: 600; color: #e8e9f3;
+    cursor: pointer; transition: transform .08s, background .15s, color .15s, opacity .3s;
+  }
+  .cell:active { transform: scale(.92); }
+  .cell.done { color: #4a4c6e; opacity: .55; }
+  .cell.hit { background: #2e7d5b; color: #fff; }
+  .cell.miss { background: #b03a4e; color: #fff; }
+  #grid.mono .cell.c0 { color: #e8e9f3; } #grid.mono .cell.c1 { color: #e8e9f3; } #grid.mono .cell.c2 { color: #e8e9f3; }
+  #grid.color .cell.c0 { color: #6ec6ff; } #grid.color .cell.c1 { color: #ffd166; } #grid.color .cell.c2 { color: #ff8fab; }
+
+  .quit-btn {
+    margin-top: 14px; background: transparent; color: #8a8ca8; border: none;
+    font-size: 14px; cursor: pointer; padding: 8px 20px;
+  }
+
+  /* 倒计时遮罩（完全不透明，挡住格子上数字） */
+  #countdown {
+    position: fixed; inset: 0; background: #1a1b2e; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  }
+  #countdown .cd-num { font-size: 96px; font-weight: 800; color: #7c6cff; }
+  #countdown .cd-tip { font-size: 14px; color: #8a8ca8; }
+
+  /* 破纪录弹窗 */
+  .modal-mask {
+    position: fixed; inset: 0; background: rgba(10,11,20,.75); z-index: 20;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal {
+    width: 100%; max-width: 320px; background: #252741; border-radius: 16px;
+    padding: 22px 20px; text-align: center;
+  }
+  .modal .modal-title { font-size: 20px; font-weight: 700; }
+  .modal .modal-sub { font-size: 13px; color: #8a8ca8; margin: 8px 0 16px; }
+  .modal .modal-sub b { color: #ffd166; }
+  .modal input {
+    width: 100%; background: #1a1b2e; border: 1.5px solid #3a3d5e; border-radius: 12px;
+    color: #e8e9f3; font-size: 16px; padding: 11px 14px; outline: none; text-align: center;
+  }
+  .modal input:focus { border-color: #7c6cff; }
+  .modal .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+  .modal .modal-btns .primary-btn, .modal .modal-btns .secondary-btn { padding: 11px 0; font-size: 15px; }
+
+  /* ===== 结果页 ===== */
+  #result-page { justify-content: center; gap: 6px; }
+  #result-page .emoji { font-size: 52px; }
+  #result-page h2 { font-size: 24px; margin: 4px 0 18px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 320px; margin-bottom: 24px; }
+  .stat-box { background: #252741; border-radius: 12px; padding: 12px 0; text-align: center; }
+  .stat-box .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-box .k { font-size: 11px; color: #8a8ca8; margin-top: 2px; }
+  .new-record { color: #ffd166; font-size: 14px; font-weight: 600; margin-bottom: 14px; min-height: 18px; }
+  .btn-row { display: flex; gap: 10px; width: 100%; max-width: 320px; }
+  .secondary-btn {
+    flex: 1; background: #252741; color: #aeb0c8; border: none; border-radius: 14px;
+    font-size: 16px; padding: 13px 0; cursor: pointer;
+  }
+  .secondary-btn:active { opacity: .8; }
+  .btn-row .primary-btn { flex: 1; width: auto; }
+</style>
+</head>
+<body>
+
+<!-- 首页 -->
+<div class="page" id="home-page">
+  <h1>舒尔特方格</h1>
+  <div class="subtitle">注意力训练 · 按顺序点击所有数字</div>
+  <div class="size-grid" id="size-grid"></div>
+  <div class="mode-row" id="mode-row"></div>
+  <label class="toggle-row"><input type="checkbox" id="assist-toggle">新手辅助（已点的数字变暗）</label>
+  <button class="primary-btn" id="start-btn">开始训练</button>
+  <button class="ghost-btn" id="rank-btn">📊 历史排行榜</button>
+  <div class="best-line" id="best-line"></div>
+</div>
+
+<!-- 排行榜页 -->
+<div class="page hidden" id="rank-page">
+  <h2>历史排行榜</h2>
+  <div id="rank-list"></div>
+  <button class="ghost-btn" id="rank-back-btn" style="margin-bottom: 8px;">← 返回首页</button>
+  <button class="ghost-btn" id="rank-clear-btn" style="border-color: #b03a4e; color: #ff6b81; margin-top: 0;">清空记录</button>
+</div>
+
+<!-- 游戏页 -->
+<div class="page hidden" id="game-page">
+  <div class="hud">
+    <div class="left">
+      <div id="timer">0.00</div>
+      <div id="status">准备开始</div>
+    </div>
+    <div class="right">
+      <div class="cap">下一个</div>
+      <div id="target-badge">1</div>
+      <div id="errors">错误 0</div>
+    </div>
+  </div>
+  <div id="grid"></div>
+  <button class="quit-btn" id="quit-btn">← 退出本局</button>
+</div>
+
+<div id="countdown" class="hidden">
+  <div class="cd-num">3</div>
+  <div class="cd-tip">马上开始，准备点击 1</div>
+</div>
+
+<!-- 破纪录弹窗 -->
+<div class="modal-mask hidden" id="record-modal">
+  <div class="modal">
+    <div class="modal-title">🏆 新纪录！</div>
+    <div class="modal-sub">用 <b id="rm-time">-</b> 秒刷新了 <b id="rm-mode">-</b> 的最好成绩<br>留下你的名字吧</div>
+    <input type="text" id="rm-name" maxlength="12" placeholder="输入姓名">
+    <div class="modal-btns">
+      <button class="secondary-btn" id="rm-skip">先不写</button>
+      <button class="primary-btn" id="rm-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 结果页 -->
+<div class="page hidden" id="result-page">
+  <div class="emoji" id="result-emoji">🎉</div>
+  <h2>训练完成！</h2>
+  <div class="new-record" id="new-record"></div>
+  <div class="stats">
+    <div class="stat-box"><div class="v" id="r-total">-</div><div class="k">总用时 (秒)</div></div>
+    <div class="stat-box"><div class="v" id="r-avg">-</div><div class="k">平均反应 (毫秒)</div></div>
+    <div class="stat-box"><div class="v" id="r-best">-</div><div class="k">单次最快 (毫秒)</div></div>
+    <div class="stat-box"><div class="v" id="r-acc">-</div><div class="k">准确率</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title" id="chart-title">每次点击耗时 (毫秒)</div>
+    <canvas id="chart-canvas" width="680" height="260"></canvas>
+  </div>
+  <div class="btn-row">
+    <button class="secondary-btn" id="home-btn">返回首页</button>
+    <button class="primary-btn" id="again-btn">再来一局</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- 配置 ----------
+  var SIZES = [3, 4, 5, 6];
+  var MODES = [
+    { value: 'asc', label: '正序' },
+    { value: 'desc', label: '降序' },
+    { value: 'color', label: '多色' }
+  ];
+  var STORE_KEY = 'schulte_best_v2';
+  var HISTORY_KEY = 'schulte_history_v2';
+  var NAME_KEY = 'schulte_player_name';
+
+  // ---------- 状态 ----------
+  var state = {
+    size: 5,
+    mode: 'asc',
+    assist: true,
+    target: 1,        // 下一个该点的数字（降序模式下表示“第几个”）
+    errors: 0,
+    startTime: null,  // 首次点击才起表
+    clickTimes: [],   // 每次正确点击的时间戳，用于算反应间隔
+    running: false,
+    timerId: null,
+    lastGridKey: ''   // 避免连续两局布局完全相同
+  };
+  var numbers = [];   // 格子上的数字，按格子顺序
+  var cells = [];     // DOM 引用
+
+  // ---------- 工具 ----------
+  function $(id) { return document.getElementById(id); }
+
+  function shuffle(n) {
+    // 洗牌并避免与上一局布局完全一致
+    var arr, key, tries = 0;
+    do {
+      arr = [];
+      for (var i = 1; i <= n * n; i++) arr.push(i);
+      for (var j = arr.length - 1; j > 0; j--) {
+        var k = Math.floor(Math.random() * (j + 1));
+        var t = arr[j]; arr[j] = arr[k]; arr[k] = t;
+      }
+      key = arr.join(',');
+      tries++;
+    } while (key === state.lastGridKey && tries < 10);
+    state.lastGridKey = key;
+    return arr;
+  }
+
+  function loadBest() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveBest(obj) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+  function bestKey() { return state.size + '_' + state.mode; }
+
+  // 读取最好成绩：兼容旧格式（纯数字）
+  function getBestEntry(key) {
+    var b = loadBest()[key];
+    if (typeof b === 'number') return { time: b, name: '' };
+    return b || null;
+  }
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveHistory(arr) {
+    // 最多保留 50 条，防止本地存储膨胀
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 50))); } catch (e) {}
+  }
+
+  function modeLabel(v) {
+    for (var i = 0; i < MODES.length; i++) if (MODES[i].value === v) return MODES[i].label;
+    return v;
+  }
+
+  function fmtSec(ms) { return (ms / 1000).toFixed(2); }
+  function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  function beep(freq, dur) {
+    try {
+      var ac = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value = freq; o.type = 'sine';
+      g.gain.setValueAtTime(0.12, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+      o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) {}
+  }
+
+  // ---------- 首页 ----------
+  function renderHome() {
+    var sg = $('size-grid');
+    sg.innerHTML = '';
+    SIZES.forEach(function (s) {
+      var d = document.createElement('div');
+      d.className = 'size-card' + (s === state.size ? ' selected' : '');
+      d.innerHTML = '<div class="num">' + s + '×' + s + '</div><div class="label">' + (s * s) + ' 个数字</div>';
+      d.onclick = function () { state.size = s; renderHome(); };
+      sg.appendChild(d);
+    });
+
+    var mr = $('mode-row');
+    mr.innerHTML = '';
+    MODES.forEach(function (m) {
+      var b = document.createElement('button');
+      b.className = 'mode-btn' + (m.value === state.mode ? ' selected' : '');
+      b.textContent = m.label;
+      b.onclick = function () { state.mode = m.value; renderHome(); };
+      mr.appendChild(b);
+    });
+
+    $('assist-toggle').checked = state.assist;
+
+    var best = getBestEntry(bestKey());
+    $('best-line').innerHTML = best
+      ? '该项目纪录：<b>' + fmtSec(best.time) + '</b> 秒' + (best.name ? ' · <b>' + best.name + '</b>' : '')
+      : '还没有成绩，来创造第一个记录吧';
+  }
+
+  // ---------- 游戏页 ----------
+  function startGame() {
+    state.assist = $('assist-toggle').checked;
+    state.target = 1;
+    state.errors = 0;
+    state.startTime = null;
+    state.clickTimes = [];
+    state.running = false;
+
+    var n = state.size;
+    numbers = shuffle(n);
+
+    var grid = $('grid');
+    grid.innerHTML = '';
+    grid.className = (state.mode === 'color' ? 'color' : 'mono');
+    grid.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+    cells = [];
+    numbers.forEach(function (num, i) {
+      var c = document.createElement('button');
+      c.className = 'cell c' + (i % n) % 3;
+      c.textContent = num;
+      c.onclick = function () { onCellTap(num, c); };
+      grid.appendChild(c);
+      cells.push(c);
+    });
+
+    showPage('game');
+    $('timer').textContent = '0.00';
+    $('errors').textContent = '错误 0';
+    updateTarget();
+    $('status').textContent = '点击 1 开始计时';
+
+    // 3-2-1 倒计时（只改数字元素，保留提示文字结构）
+    var cd = $('countdown');
+    var cdNum = cd.querySelector('.cd-num');
+    cd.classList.remove('hidden');
+    var count = 3;
+    cdNum.textContent = count;
+    beep(440, 0.15);
+    var iv = setInterval(function () {
+      count--;
+      if (count > 0) { cdNum.textContent = count; beep(440, 0.15); }
+      else {
+        clearInterval(iv);
+        cd.classList.add('hidden');
+        state.running = true;
+        $('status').textContent = '点击 1 开始计时';
+      }
+    }, 800);
+  }
+
+  function updateTarget() {
+    // 降序模式：从 N² 倒着点；其余正序
+    var shown = state.mode === 'desc' ? (state.size * state.size + 1 - state.target) : state.target;
+    $('target-badge').textContent = shown;
+  }
+
+  function onCellTap(num, cell) {
+    if (!state.running) return;
+
+    var want = state.mode === 'desc' ? (state.size * state.size + 1 - state.target) : state.target;
+    if (num === want) {
+      if (state.startTime === null) {
+        state.startTime = Date.now();
+        state.timerId = setInterval(updateTimer, 50);
+      }
+      state.clickTimes.push(Date.now());
+      state.target++;
+
+      cell.classList.add('hit');
+      beep(660, 0.08);
+      vibrate(15);
+      setTimeout(function () {
+        cell.classList.remove('hit');
+        if (state.assist && state.target > 1) cell.classList.add('done');
+      }, 250);
+
+      if (state.assist) cell.classList.add('done');
+
+      if (state.target > state.size * state.size) {
+        finishGame();
+      } else {
+        updateTarget();
+        $('status').textContent = '';
+      }
+    } else {
+      state.errors++;
+      $('errors').textContent = '错误 ' + state.errors;
+      cell.classList.add('miss');
+      beep(220, 0.2);
+      vibrate([40, 30, 40]);
+      setTimeout(function () { cell.classList.remove('miss'); }, 350);
+    }
+  }
+
+  function updateTimer() {
+    if (state.startTime !== null) {
+      $('timer').textContent = fmtSec(Date.now() - state.startTime);
+    }
+  }
+
+  function finishGame() {
+    state.running = false;
+    clearInterval(state.timerId);
+
+    var total = Date.now() - state.startTime;
+    var intervals = [];
+    for (var i = 1; i < state.clickTimes.length; i++) {
+      intervals.push(state.clickTimes[i] - state.clickTimes[i - 1]);
+    }
+    // 第一次点击相对“开始计时”也有耗时，一并计入折线图
+    var perClick = [state.clickTimes[0] - state.startTime].concat(intervals);
+    var avg = intervals.length
+      ? Math.round(intervals.reduce(function (a, b) { return a + b; }, 0) / intervals.length)
+      : 0;
+    var fastest = intervals.length ? Math.min.apply(null, intervals) : 0;
+    var acc = Math.round(state.size * state.size / (state.size * state.size + state.errors) * 100);
+
+    // 保存本局记录到历史
+    var record = {
+      ts: Date.now(),
+      size: state.size,
+      mode: state.mode,
+      total: total,
+      avg: avg,
+      errors: state.errors,
+      perClick: perClick,
+      name: ''
+    };
+    var history = loadHistory();
+    history.unshift(record);
+    saveHistory(history);
+
+    // 判断是否破纪录；破了先挂起，等弹窗录入姓名后再落库
+    var prevBest = getBestEntry(bestKey());
+    var isNew = !prevBest || total < prevBest.time;
+    if (isNew) {
+      state.pendingRecord = { key: bestKey(), time: total, record: record };
+      showRecordModal(total);
+    } else {
+      state.pendingRecord = null;
+    }
+
+    $('r-total').textContent = fmtSec(total);
+    $('r-avg').textContent = avg;
+    $('r-best').textContent = fastest;
+    $('r-acc').textContent = acc + '%';
+    $('new-record').textContent = isNew ? '🏆 新纪录！' : '';
+    $('result-emoji').textContent = state.errors === 0 ? '🎯' : '👍';
+
+    drawChart(perClick);
+    showPage('result');
+    beep(660, 0.12);
+    setTimeout(function () { beep(880, 0.2); }, 140);
+  }
+
+  function showPage(name) {
+    ['home', 'game', 'result', 'rank'].forEach(function (p) {
+      $(p + '-page').classList.toggle('hidden', p !== name);
+    });
+  }
+
+  // ---------- 折线图（零依赖 canvas 绘制） ----------
+  function drawChart(perClick) {
+    var canvas = $('chart-canvas');
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var padL = 56, padR = 14, padT = 16, padB = 26;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+
+    ctx.clearRect(0, 0, W, H);
+    if (!perClick || perClick.length < 2) {
+      ctx.fillStyle = '#8a8ca8';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('点击次数太少，无趋势', W / 2, H / 2);
+      return;
+    }
+
+    var maxV = Math.max.apply(null, perClick);
+    // Y 轴留 15% 余量，刻度取整到 100ms
+    var yMax = Math.ceil(maxV * 1.15 / 100) * 100;
+    var n = perClick.length;
+
+    function xPos(i) { return padL + plotW * i / (n - 1); }
+    function yPos(v) { return padT + plotH * (1 - v / yMax); }
+
+    // 网格线与 Y 轴刻度
+    ctx.strokeStyle = '#33354f';
+    ctx.fillStyle = '#8a8ca8';
+    ctx.lineWidth = 1;
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'right';
+    var step = yMax / 4;
+    for (var g = 0; g <= 4; g++) {
+      var v = step * g, y = yPos(v);
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+      ctx.fillText(Math.round(v), padL - 8, y + 6);
+    }
+
+    // X 轴首末点击序号
+    ctx.textAlign = 'center';
+    ctx.fillText('第1击', padL + 14, H - 6);
+    ctx.fillText('第' + n + '击', W - padR - 14, H - 6);
+
+    // 平均线
+    var mean = perClick.reduce(function (a, b) { return a + b; }, 0) / n;
+    if (mean < yMax) {
+      ctx.strokeStyle = '#ffd166';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath(); ctx.moveTo(padL, yPos(mean)); ctx.lineTo(W - padR, yPos(mean)); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 折线
+    ctx.strokeStyle = '#7c6cff';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (var i = 0; i < n; i++) {
+      var x = xPos(i), y = yPos(perClick[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 数据点：最慢一点标红
+    for (var j = 0; j < n; j++) {
+      ctx.fillStyle = perClick[j] === maxV ? '#ff6b81' : '#7c6cff';
+      ctx.beginPath();
+      ctx.arc(xPos(j), yPos(perClick[j]), 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---------- 破纪录弹窗 ----------
+  function showRecordModal(totalMs) {
+    $('rm-time').textContent = fmtSec(totalMs);
+    $('rm-mode').textContent = state.size + '×' + state.size + ' ' + modeLabel(state.mode);
+    var lastName = '';
+    try { lastName = localStorage.getItem(NAME_KEY) || ''; } catch (e) {}
+    $('rm-name').value = lastName;
+    $('record-modal').classList.remove('hidden');
+    setTimeout(function () { $('rm-name').focus(); $('rm-name').select(); }, 100);
+  }
+
+  function commitRecord(name) {
+    var p = state.pendingRecord;
+    if (!p) return;
+    var best = loadBest();
+    best[p.key] = { time: p.time, name: name };
+    saveBest(best);
+    // 历史列表里这一局也补上名字
+    if (p.record.ts) {
+      var history = loadHistory();
+      for (var i = 0; i < history.length; i++) {
+        if (history[i].ts === p.record.ts) { history[i].name = name; break; }
+      }
+      saveHistory(history);
+    }
+    state.pendingRecord = null;
+  }
+
+  function closeModal() {
+    $('record-modal').classList.add('hidden');
+  }
+
+  // ---------- 排行榜 ----------
+  function renderRank() {
+    var list = $('rank-list');
+    var history = loadHistory();
+    list.innerHTML = '';
+
+    if (!history.length) {
+      list.innerHTML = '<div class="rank-empty">还没有记录，先去完成一局吧</div>';
+      return;
+    }
+
+    // 排行榜：按总用时升序
+    history = history.slice().sort(function (a, b) { return a.total - b.total; });
+
+    history.forEach(function (r, i) {
+      var d = document.createElement('div');
+      d.className = 'rank-item' + (i < 3 ? ' top' + (i + 1) : '');
+      var date = new Date(r.ts);
+      var dateStr = (date.getMonth() + 1) + '月' + date.getDate() + '日 ' +
+        ('0' + date.getHours()).slice(-2) + ':' + ('0' + date.getMinutes()).slice(-2);
+      d.innerHTML =
+        '<div class="pos">' + (i + 1) + '</div>' +
+        '<div class="info">' +
+          '<div class="meta">' + r.size + '×' + r.size + ' · ' + modeLabel(r.mode) + (r.name ? ' · ' + r.name : '') + '</div>' +
+          '<div class="sub">' + dateStr + ' · 错误 ' + r.errors + ' · 均值 ' + r.avg + 'ms</div>' +
+        '</div>' +
+        '<div class="time">' + fmtSec(r.total) + 's</div>';
+      list.appendChild(d);
+    });
+  }
+
+  // ---------- 事件绑定 ----------
+  $('start-btn').onclick = startGame;
+  $('quit-btn').onclick = function () {
+    state.running = false;
+    clearInterval(state.timerId);
+    renderHome();
+    showPage('home');
+  };
+  $('home-btn').onclick = function () { renderHome(); showPage('home'); };
+  $('again-btn').onclick = startGame;
+  $('assist-toggle').onchange = function (e) { state.assist = e.target.checked; };
+  $('rank-btn').onclick = function () { renderRank(); showPage('rank'); };
+  $('rank-back-btn').onclick = function () { renderHome(); showPage('home'); };
+  $('rank-clear-btn').onclick = function () {
+    if (confirm('确定清空所有历史记录吗？')) {
+      saveHistory([]);
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      renderRank();
+    }
+  };
+  // 破纪录弹窗
+  $('rm-save').onclick = function () {
+    var name = $('rm-name').value.trim();
+    if (name) { try { localStorage.setItem(NAME_KEY, name); } catch (e) {} }
+    commitRecord(name);
+    closeModal();
+  };
+  $('rm-skip').onclick = function () {
+    commitRecord('');
+    closeModal();
+  };
+  // 回车等同保存
+  $('rm-name').onkeydown = function (e) {
+    if (e.key === 'Enter') $('rm-save').click();
+  };
+
+  renderHome();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# Node
+node_modules/
+package-lock.json
+
+# 构建产物
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+*.apk
+!release/*.apk
+
+# IDE / 系统
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

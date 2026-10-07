@@ -1,0 +1,12 @@
+{
+  "appId": "com.schulte.training",
+  "appName": "舒尔特方格",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "webContentsDebuggingEnabled": false,
+    "allowMixedContent": false
+  }
+}
